@@ -30,3 +30,40 @@ export interface OverviewResponse {
   kpis: KpiItem[];
   records: OperationRecord[];
 }
+
+export type MatchStatus = "finished" | "ongoing";
+
+export interface MatchRecord {
+  matchId: string;
+  boardGame: string;
+  participantNames: string[];
+  winnerNames: string[];
+  durationMinutes: number;
+  playedAt: string;
+  note: string;
+  status: MatchStatus;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatchFormPayload {
+  matchId?: string;
+  boardGame: string;
+  participantNames: string[];
+  winnerNames: string[];
+  durationMinutes: number;
+  playedAt?: string;
+  note?: string;
+  status: MatchStatus;
+}
+
+export interface LeaderboardEntry {
+  playerName: string;
+  matchesCount: number;
+  winsCount: number;
+  lossesCount: number;
+  winRate: number;
+  rank: number;
+}
+

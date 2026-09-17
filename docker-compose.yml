@@ -5,6 +5,8 @@ services:
     image: mongo:7
     container_name: ${COMPOSE_PROJECT_NAME:-lpboardgame}-db
     restart: unless-stopped
+    # 战绩提交使用多文档事务，MongoDB 要求以副本集模式运行。
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     environment:
       MONGO_INITDB_DATABASE: ${DB_NAME}
       MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
@@ -14,10 +16,72 @@ services:
     volumes:
       - db_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet -u $${DB_USER} -p $${DB_PASSWORD} --authenticationDatabase admin --eval 'db.adminCommand({ping:1}).ok' | grep -q 1 || exit 1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
+
+  db-init:
+    image: mongo:7
+    container_name: ${COMPOSE_PROJECT_NAME:-lpboardgame}-db-init
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - bash
+      - -c
+      - |
+        for i in $(seq 1 30); do
+          STATUS=$$(mongosh --host db:27017 -u "$${DB_USER}" -p "$${DB_PASSWORD}" --authenticationDatabase admin --quiet --eval '
+            try {
+              const s = rs.status();
+              print(s.ok === 1 ? "READY" : "NOT_READY");
+            } catch (e) {
+              print("NOT_READY");
+            }
+          ' 2>/dev/null | tr -d '[:space:]')
+          if [ "$$STATUS" = "READY" ]; then
+            echo "replica set already initialized";
+            exit 0;
+          fi
+          RESULT=$$(mongosh --host db:27017 -u "$${DB_USER}" -p "$${DB_PASSWORD}" --authenticationDatabase admin --quiet --eval '
+            try {
+              printjson(rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "db:27017" }] }));
+            } catch (e) {
+              print("INIT_ERROR: " + e.message);
+            }
+          ' 2>/dev/null)
+          echo "$$RESULT"
+          sleep 2
+        done
+
+        # initiate 返回后等待 PRIMARY 就绪，避免后端在选举窗口内连不上。
+        for i in $(seq 1 30); do
+          PRIMARY=$$(mongosh --host db:27017 -u "$${DB_USER}" -p "$${DB_PASSWORD}" --authenticationDatabase admin --quiet --eval '
+            try {
+              const s = rs.status();
+              const p = (s.members || []).find(m => m.stateStr === "PRIMARY");
+              print(p ? "PRIMARY" : "WAITING");
+            } catch (e) {
+              print("WAITING");
+            }
+          ' 2>/dev/null | tr -d '[:space:]')
+          if [ "$$PRIMARY" = "PRIMARY" ]; then
+            echo "primary is ready";
+            exit 0;
+          fi
+          sleep 1
+        done
+        echo "replica set primary timed out";
+        exit 1
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
 
   backend:
     build: ./backend
@@ -31,16 +95,15 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      DATABASE_URL: mongodb://${DB_USER}:${DB_PASSWORD}@db:27017/${DB_NAME}?authSource=admin
-      SPRING_DATASOURCE_URL: 
-      SPRING_DATASOURCE_DRIVER: 
-      SPRING_JPA_DATABASE_PLATFORM: 
+      DATABASE_URL: mongodb://${DB_USER}:${DB_PASSWORD}@db:27017/${DB_NAME}?authSource=admin&replicaSet=rs0
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${BACKEND_PORT:-29512}:29512"
     depends_on:
       db:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:29512/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
