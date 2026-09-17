@@ -5,4 +5,7 @@ export const logger = {
   error(message: string) {
     console.error(`[lpboardgame] ${message}`);
   },
+  warn(message: string) {
+    console.warn(`[lpboardgame] ${message}`);
+  },
 };

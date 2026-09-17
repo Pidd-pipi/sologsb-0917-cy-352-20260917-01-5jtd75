@@ -151,10 +151,135 @@ body {
   font-weight: 700;
 }
 
+.brand-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.topnav {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.topnav-link {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: color-mix(in srgb, #19212e 70%, #3268b8 30%);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.topnav-link:hover {
+  background: color-mix(in srgb, #3268b8 12%, transparent);
+}
+
+.topnav-link.active {
+  background: #3268b8;
+  color: white;
+}
+
+.records-page {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 40px) 0 64px;
+}
+
+.records-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  margin: 0 0 6px;
+  font-size: clamp(22px, 2.4vw, 30px);
+}
+
+.section-sub {
+  margin: 0;
+  color: color-mix(in srgb, #19212e 65%, #3268b8 35%);
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.summary-row {
+  margin-bottom: 18px;
+}
+
+.summary-row .el-card {
+  border-radius: 8px;
+}
+
+.summary-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: #3268b8;
+}
+
+.summary-label {
+  margin-top: 4px;
+  color: color-mix(in srgb, #19212e 60%, transparent);
+}
+
+.panel-card {
+  border-radius: 8px;
+}
+
+.panel-title {
+  font-weight: 800;
+}
+
+.game-tag {
+  margin: 2px 4px 2px 0;
+}
+
+.more-games {
+  color: color-mix(in srgb, #19212e 55%, transparent);
+  font-size: 12px;
+}
+
+.match-game {
+  font-weight: 700;
+}
+
+.match-time {
+  font-size: 12px;
+  color: color-mix(in srgb, #19212e 55%, transparent);
+}
+
+.wins {
+  color: #67c23a;
+  font-weight: 800;
+}
+
+.losses {
+  color: #909399;
+}
+
+.sep {
+  margin: 0 4px;
+  color: #c0c4cc;
+}
+
 @media (max-width: 860px) {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topnav {
+    margin-left: 0;
   }
 
   .lead-grid,

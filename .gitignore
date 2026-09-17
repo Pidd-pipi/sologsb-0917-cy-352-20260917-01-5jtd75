@@ -10,3 +10,4 @@ backend/dist/
 coverage/
 .pytest_cache/
 *.class
+backend/test/.testdb/
